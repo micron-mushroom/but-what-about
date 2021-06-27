@@ -4,6 +4,12 @@ version = "0.1.0"
 authors = ["micron-mushroom <micron.mushroom@gmail.com>"]
 edition = "2018"
 
+license = "MIT"
+keywords = ["permutations", "permutation", "permute"]
+categories = ["algorithms"]
+description = "A permutation & combination calculation crate for rust."
+repository = "https://github.com/micron-mushroom/but-what-about"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
