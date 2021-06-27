@@ -1,5 +1,5 @@
 [package]
-name = "heap-permute"
+name = "but-what-about"
 version = "0.1.0"
 authors = ["micron-mushroom <micron.mushroom@gmail.com>"]
 edition = "2018"
@@ -16,5 +16,5 @@ grapheme = ["unicode-segmentation"]
 criterion = "0.3.4"
 
 [[bench]]
-name = "heap_permute"
+name = "but_what_about"
 harness = false

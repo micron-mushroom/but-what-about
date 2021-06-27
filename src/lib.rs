@@ -58,6 +58,7 @@ mod iterator;
 
 pub use crate::permutable::Permutable;
 pub use crate::iterator::PermuteIter;
+
 #[cfg(feature = "grapheme")]
 pub use crate::permutable::GraphemeString;
 

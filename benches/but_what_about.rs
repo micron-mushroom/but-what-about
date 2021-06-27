@@ -1,6 +1,6 @@
 
 use criterion::{criterion_group, criterion_main, Criterion};
-use heap_permute::{PermuteIter};
+use but_what_about::{PermuteIter};
 
 const STRING: &'static str = "ABCDEF";
 
