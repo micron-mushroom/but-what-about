@@ -2,17 +2,18 @@
 //! and the smallest possible runtime memory impact possible. And so, the goal
 //! of this crate is to be able to calculate and obtain a permutation of a value
 //! as soon as possible.
-//! 
+//!
 //! # Examples
+//! Get all the permutations of a string of three characters:
 //! ```rust
+//! use heap_permute::PermuteIter;
+//! 
 //! // Print all of the permutations of a string of three characters
 //! fn main() {
 //!     const STRING: &'static str = "ABC";
-//! 
-//!     for p in PermuterIter::from(STRING) {
-//!         if let Ok(string) = std::str::from_utf8(&p) {
-//!             println!("{}", string);
-//!         }
+//!
+//!     for p in PermuteIter::from(STRING) {
+//!         println!("{}", p);
 //!     }
 //! }
 //! // Prints: 
@@ -23,125 +24,69 @@
 //! // BCA
 //! // CBA
 //! ```
+//!
+//! Now time for something more interesting, let's permute the bits in a u8:
+//! ```rust
+//! use heap_permute::PermuteIter;
+//! 
+//! fn main() {
+//!     for p in PermuteIter::from(0b1010_1001 as u8) {
+//!         println!("0b{:08b} ({})", p, p);
+//!     }
+//! }
+//! // Prints:
+//! // 0b10101001 (169)
+//! // 0b10101010 (170)
+//! // 0b10101010 (170)
+//! // 0b10101001 (169)
+//! // 0b10101100 (172)
+//! // 0b10101100 (172)
+//! // 0b10100101 (165)
+//! // 0b10100110 (166)
+//! // 0b10100011 (163)
+//! // 0b10100011 (163)
+//! // ...
+//! ```
+//!
+//! As it happens, the crate supports permutation for all of the primitive
+//! numeric rust types.
+//!
 
-/// Permutator. I don't recommend that you use this interface for obtaining the
-/// permutations because in order to make the permute function as fast as
-/// possible, safety was thrown away. That being said, HeapPermutor can be
-/// faster than the iterator because it isn't required to create a new Vec for
-/// each yield. In practice it's about a 0.5ns speed gain and extra
-/// responsibility. So unless you need it, I can't recommend it.
-pub struct HeapPermutor {
-    finished: bool,
-    index: usize,
-    stack: Vec<usize>,
-}
+mod permutable;
+mod heap;
+mod iterator;
 
-impl HeapPermutor {
-    /// Create a new heap permutor. The stack size argument should be the size
-    /// of the Vec that's going to be permuted.
-    pub fn new<'b>(size: usize) -> HeapPermutor {
-        HeapPermutor {
-            finished: false,
-            index: 1,
-            stack: Vec::with_capacity(size),
-        }
-    }
+pub use crate::permutable::Permutable;
+pub use crate::iterator::PermuteIter;
+#[cfg(feature = "grapheme")]
+pub use crate::permutable::GraphemeString;
 
-    /// Using permute on a Vec not of length size(from HeapPermutor::new) will
-    /// result in undefined behaviour.
-    /// # Contract
-    ///  - Never modify the struct field values unless you know what you're doing
-    ///  - Ensure that the `source.len()` is equal to `self.stack.len()`
-    /// 
-    pub unsafe fn permute<T>(&mut self, source: &mut Vec<T>) {
-        let stack = self.stack.as_mut_ptr();
-
-        while self.index < source.len() {
-            if *stack.add(self.index) < self.index {
-                // Swap based on index parity
-                if self.index % 2 == 0 {
-                    source.swap(0, self.index);
-                } else {
-                    source.swap(*stack.add(self.index), self.index);
-                }
-                
-                // Increment loop counter
-                *stack.add(self.index) += 1;
-
-                // "Simulate recursive call reaching the base case by bringing the pointer to the base case analog in the array"
-                self.index = 1;
-
-                return;
-            } else {
-                // Loop terminated, reset state and simulate stack pop
-                *stack.add(self.index) = 0;
-                self.index += 1;
-            }
-        }
-
-        self.finished = true;
-    }
-
-    #[inline]
-    pub fn finished(&self) -> bool {
-        self.finished
-    }
-}
-
-/// Iterator over 
-pub struct PermuteIter<T>{
-    p: HeapPermutor,
-    source: Vec<T>,
-}
-
-impl<T> Iterator for PermuteIter<T>
-where T: Clone + 'static
-{
-    type Item = Vec<T>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.p.finished {
-            None
-        } else {
-            let val = self.source.clone();
-
-            unsafe {
-                self.p.permute(&mut self.source);
-            }
-    
-            Some(val)
-        }
-    }
-}
-
-impl From<&'static str> for PermuteIter<u8> {
-    fn from(string: &'static str) -> Self {
-        PermuteIter {
-            p: HeapPermutor::new(string.len()),
-            source: string.bytes().collect::<Vec<u8>>(),
-        }
-    }
+/// A type that can permute a permutable, in this crate there is only one at the
+/// moment.
+trait Permutor {
+    fn permute(&mut self, source: &mut impl Permutable);
 }
 
 #[cfg(test)]
 mod tests {
-    fn permute_general(string: &'static str, result: &mut Vec<&'static str>) {
-        for p in super::PermuteIter::from(string) {
-            // Get
-            let string = std::str::from_utf8(&p[..]).unwrap();
+    use super::*;
+
+    fn permute_general<T>(val: T, result: &mut Vec<T>, bound: usize)
+    where T: Permutable + Clone + std::fmt::Debug + std::cmp::PartialEq
+    {
+        for p in PermuteIter::from(val).take(bound) {
             let cmp = result.pop().unwrap();
             // Output
-            eprintln!("{}(Permutor), {}(Required)", string, cmp);
-            
-            assert_eq!(string, cmp);
+            eprintln!("{:?}(Permutor), {:?}(Required)", p, cmp);
+            assert_eq!(p, cmp);
         }
     }
 
     #[test]
     fn permute_four() {
-        const STRING: &'static str = "ABCD";
+        let string: String = "ABCD".into();
 
-        let mut result: Vec<&'static str> = vec![
+        let mut result: Vec<String> = vec![
             "ABCD",
             "BACD",
             "CABD",
@@ -166,32 +111,50 @@ mod tests {
             "DBAC",
             "ABDC",
             "BADC",
-        ].iter().cloned().rev().collect();
+        ].iter().map(|s| String::from(*s)).rev().collect();
 
         eprintln!("Permutations for test(length): {}", result.len());
         // Check that at least the number of results is equal to 4!
         assert!(result.len() == 24);
 
-        permute_general(STRING, &mut result);
+        permute_general(string, &mut result, 24);
     }
 
     #[test]
     fn permute_three() {
-        const STRING: &'static str = "ABC";
+        let string: String = "ABC".into();
 
-        let mut result: Vec<&'static str> = vec![
+        let mut result: Vec<String> = vec![
             "ABC",
             "BAC",
             "CAB",
             "ACB",
             "BCA",
             "CBA",
-        ].iter().cloned().rev().collect();
+        ].iter().map(|s| String::from(*s)).rev().collect();
 
         eprintln!("Permutations for test(length): {}", result.len());
         // Check that at least the number of results is equal to 3!
         assert!(result.len() == 6);
 
-        permute_general(STRING, &mut result);
+        permute_general(string, &mut result, 6);
+    }
+
+    #[test]
+    fn permute_bits() {
+        let mut result = vec![
+            0b10101001,
+            0b10101010,
+            0b10101010,
+            0b10101001,
+            0b10101100,
+            0b10101100,
+            0b10100101,
+            0b10100110,
+            0b10100011,
+            0b10100011,
+        ].iter().rev().cloned().collect::<Vec<u8>>();
+
+        permute_general(0b1010_1001, &mut result, 10);
     }
 }
