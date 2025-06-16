@@ -13,10 +13,10 @@ repository = "https://github.com/micron-mushroom/but-what-about"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-unicode-segmentation =  { version = "1.7.1", optional = true }
+unicode-segmentation =  { version = "1.10.1" }
 
-[features]
-grapheme = ["unicode-segmentation"]
+# [features]
+# grapheme = ["unicode-segmentation"]
 
 [dev-dependencies]
 criterion = "0.3.4"

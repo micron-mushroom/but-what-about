@@ -1,4 +1,3 @@
-
 /// Permutator. I don't recommend that you use this interface for obtaining the
 /// permutations because in order to make the permute function as fast as
 /// possible, safety was thrown away. That being said, HeapPermutor can be
@@ -22,39 +21,38 @@ impl HeapPermutor {
         }
     }
 
-    // /// Using permute on a Vec not of length size(from HeapPermutor::new) will
-    // /// result in undefined behaviour.
-    // /// # Contract
-    // ///  - Never modify the struct field values unless you know what you're doing
-    // ///  - Ensure that the `source.len()` is equal to `self.stack.len()`
-    // /// 
-    // pub unsafe fn permute<T>(&mut self, source: &mut Vec<T>) {
-        
-    // }
-
     #[inline]
     pub fn finished(&self) -> bool {
         self.finished
     }
 }
 
-use crate::{Permutor, Permutable};
+use crate::{Permutable, Permutor};
 
-/// Heap permute implementation
-impl Permutor for HeapPermutor {
-    fn permute(&mut self, source: &mut impl Permutable) {
+impl<T: Permutable> From<&T> for HeapPermutor {
+    fn from(value: &T) -> Self {
+        Self {
+            finished: false,
+            index: 1,
+            stack: Vec::with_capacity(<T as Permutable>::len(value)),
+        }
+    }
+}
+
+impl<'a, T: Permutable + 'a> Permutor<'a, T> for HeapPermutor {
+    fn permute(&mut self, source: &mut T) {
         let stack = self.stack.as_mut_ptr();
 
-        while self.index < source.length() {
+        while self.index < source.len() {
             unsafe {
                 if *stack.add(self.index) < self.index {
                     // Swap based on index parity
                     if self.index % 2 == 0 {
-                        source.switch(0, self.index);
+                        source.swap(0, self.index);
                     } else {
-                        source.switch(*stack.add(self.index), self.index);
+                        source.swap(*stack.add(self.index), self.index);
                     }
-                    
+
                     // Increment loop counter
                     *stack.add(self.index) += 1;
 
@@ -72,5 +70,9 @@ impl Permutor for HeapPermutor {
 
         // We managed to reach the end of the function, looping is done, and we have completed a cycle of permutation
         self.finished = true;
+    }
+
+    fn finished(&self) -> bool {
+        self.finished
     }
 }

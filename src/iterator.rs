@@ -1,33 +1,18 @@
-use crate::heap::HeapPermutor;
 use crate::Permutable;
 use crate::Permutor;
 
 /// Iterator over the permutations of a permutable type
-pub struct PermuteIter<T: Permutable>{
-    p: HeapPermutor,
-    source: T,
+pub struct PermuteIter<A: for <'a> Permutor<'a, B>, B: Permutable> {
+    p: A,
+    source: B,
 }
 
-
-#[cfg(feature = "grapheme")]
-use crate::permutable::GraphemeString;
-
-/// Creates a string iterator that iterates over graphemes rather than
-/// codepoints
-#[cfg(feature = "grapheme")]
-impl PermuteIter<String> {
-    pub fn with_graphemes(&self) -> PermuteIter<GraphemeString> {
-        PermuteIter {
-            p: HeapPermutor::new(self.len()),
-            source: GraphemeString::new(self),
-        }
-    }
-}
-
-impl<T> Iterator for PermuteIter<T>
-where T: Permutable + Clone
+impl<A, B> Iterator for PermuteIter<A, B>
+where
+    A: for <'a> Permutor<'a, B>,
+    B: Permutable + Clone,
 {
-    type Item = T;
+    type Item = B;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.p.finished() {
@@ -40,22 +25,16 @@ where T: Permutable + Clone
     }
 }
 
-/// Create permute iter from a permutable type
-impl<T: Permutable> From<T> for PermuteIter<T> {
-    fn from(source: T) -> Self {
+/// Create `PermuteIter` from a permutable type.
+impl<A, B> From<B> for PermuteIter<A, B>
+where
+    A: for <'a> Permutor<'a, B>,
+    B: Permutable + Clone,
+{
+    fn from(source: B) -> Self {
         PermuteIter {
-            p: HeapPermutor::new(source.length()),
+            p: A::from(source.clone()),
             source,
-        }
-    }
-}
-
-/// PermuteIter from string slice
-impl From<&str> for PermuteIter<String> {
-    fn from(string: &str) -> Self {
-        PermuteIter {
-            p: HeapPermutor::new(string.len()),
-            source: string.into(),
         }
     }
 }

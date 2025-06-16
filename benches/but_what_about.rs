@@ -1,6 +1,5 @@
-
+use but_what_about::PermuteIter;
 use criterion::{criterion_group, criterion_main, Criterion};
-use but_what_about::{PermuteIter};
 
 const STRING: &'static str = "ABCDEF";
 
